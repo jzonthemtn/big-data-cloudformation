@@ -1,0 +1,239 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploys Kafka.",
+  "Parameters": {
+    "InitialStackName": {
+      "Description": "Name of an active CloudFormation stack that contains the initial resources.",
+      "Type": "String",
+      "MinLength" : 1,
+      "MaxLength" : 255,
+      "AllowedPattern" : "^[a-zA-Z][-a-zA-Z0-9]*$",
+      "Default" : "initial"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "KafkaInstanceType": {
+      "Description": "Kafka EC2 instance type",
+      "Type": "String",
+      "Default": "t2.small"
+    },
+    "KafkaAMI": {
+      "Description": "Kafka AMI",
+      "Type": "String",
+      "Default": "ami-f4cc1de2"
+    },
+    "SSHLocation": {
+      "Description": "The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    }
+  },
+  "Resources": {
+    "Kafka1Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "KafkaInstanceType"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "KafkaInstanceSecurityGroup"
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Ref": "KafkaAMI"
+        },
+        "PrivateIpAddress": "10.0.1.10",
+        "SubnetId": {
+          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet1ID" }
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "cd /opt/\n",
+                "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
+                "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
+                "mv kafka_2.9.1-0.8.2.1/ kafka\n",
+
+                "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
+
+                "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
+                "echo \"port=9092\" >> kafka/config/server.properties\n",
+                "echo \"host.name=10.0.1.10\" >> kafka/config/server.properties\n",
+                "echo \"num.network.threads=3\" >> kafka/config/server.properties\n",
+                "echo \"num.io.threads=8\" >> kafka/config/server.properties\n",
+                "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
+                "echo \"socket.receive.buffer.bytes=102400\" >> kafka/config/server.properties\n",
+                "echo \"socket.request.max.bytes=104857600\" >> kafka/config/server.properties\n",
+                "echo \"log.dirs=/tmp/kafka-logs\" >> kafka/config/server.properties\n",
+                "echo \"num.partitions=1\" >> kafka/config/server.properties\n",
+                "echo \"num.recovery.threads.per.data.dir=1\" >> kafka/config/server.properties\n",
+                "echo \"log.retention.hours=168\" >> kafka/config/server.properties\n",
+                "echo \"log.segment.bytes=1073741824\" >> kafka/config/server.properties\n",
+                "echo \"log.retention.check.interval.ms=300000\" >> kafka/config/server.properties\n",
+                "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
+                "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
+                "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
+
+                "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "Kafka2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "KafkaInstanceType"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "KafkaInstanceSecurityGroup"
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Ref": "KafkaAMI"
+        },
+        "PrivateIpAddress": "10.0.2.10",
+        "SubnetId": {
+          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet2ID" }
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "cd /opt/\n",
+                "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
+                "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
+                "mv kafka_2.9.1-0.8.2.1/ kafka\n",
+
+                "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
+
+                "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
+                "echo \"port=9092\" >> kafka/config/server.properties\n",
+                "echo \"host.name=10.0.2.10\" >> kafka/config/server.properties\n",
+                "echo \"num.network.threads=3\" >> kafka/config/server.properties\n",
+                "echo \"num.io.threads=8\" >> kafka/config/server.properties\n",
+                "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
+                "echo \"socket.receive.buffer.bytes=102400\" >> kafka/config/server.properties\n",
+                "echo \"socket.request.max.bytes=104857600\" >> kafka/config/server.properties\n",
+                "echo \"log.dirs=/tmp/kafka-logs\" >> kafka/config/server.properties\n",
+                "echo \"num.partitions=1\" >> kafka/config/server.properties\n",
+                "echo \"num.recovery.threads.per.data.dir=1\" >> kafka/config/server.properties\n",
+                "echo \"log.retention.hours=168\" >> kafka/config/server.properties\n",
+                "echo \"log.segment.bytes=1073741824\" >> kafka/config/server.properties\n",
+                "echo \"log.retention.check.interval.ms=300000\" >> kafka/config/server.properties\n",
+                "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
+                "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
+                "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
+
+                "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "Kafka3Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "KafkaInstanceType"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "KafkaInstanceSecurityGroup"
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Ref": "KafkaAMI"
+        },
+        "PrivateIpAddress": "10.0.3.10",
+        "SubnetId": {
+          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet3ID" }
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "cd /opt/\n",
+                "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
+                "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
+                "mv kafka_2.9.1-0.8.2.1/ kafka\n",
+
+                "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
+
+                "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
+                "echo \"port=9092\" >> kafka/config/server.properties\n",
+                "echo \"host.name=10.0.3.10\" >> kafka/config/server.properties\n",
+                "echo \"num.network.threads=3\" >> kafka/config/server.properties\n",
+                "echo \"num.io.threads=8\" >> kafka/config/server.properties\n",
+                "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
+                "echo \"socket.receive.buffer.bytes=102400\" >> kafka/config/server.properties\n",
+                "echo \"socket.request.max.bytes=104857600\" >> kafka/config/server.properties\n",
+                "echo \"log.dirs=/tmp/kafka-logs\" >> kafka/config/server.properties\n",
+                "echo \"num.partitions=1\" >> kafka/config/server.properties\n",
+                "echo \"num.recovery.threads.per.data.dir=1\" >> kafka/config/server.properties\n",
+                "echo \"log.retention.hours=168\" >> kafka/config/server.properties\n",
+                "echo \"log.segment.bytes=1073741824\" >> kafka/config/server.properties\n",
+                "echo \"log.retention.check.interval.ms=300000\" >> kafka/config/server.properties\n",
+                "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
+                "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
+                "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
+
+                "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "KafkaInstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Group for Kafka instances",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "VpcId": {
+          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-VPCID" }
+        }
+      }
+    }
+  },
+  "Outputs": {}
+}
