@@ -5,10 +5,10 @@
     "InitialStackName": {
       "Description": "Name of an active CloudFormation stack that contains the initial resources.",
       "Type": "String",
-      "MinLength" : 1,
-      "MaxLength" : 255,
-      "AllowedPattern" : "^[a-zA-Z][-a-zA-Z0-9]*$",
-      "Default" : "initial"
+      "MinLength": 1,
+      "MaxLength": 255,
+      "AllowedPattern": "^[a-zA-Z][-a-zA-Z0-9]*$",
+      "Default": "initial"
     },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
@@ -55,8 +55,16 @@
         },
         "PrivateIpAddress": "10.0.1.10",
         "SubnetId": {
-          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet1ID" }
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-Subnet1ID"
+          }
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Kafka 1"
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -69,9 +77,7 @@
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
                 "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
                 "mv kafka_2.9.1-0.8.2.1/ kafka\n",
-
                 "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
-
                 "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
                 "echo \"port=9092\" >> kafka/config/server.properties\n",
                 "echo \"host.name=10.0.1.10\" >> kafka/config/server.properties\n",
@@ -89,7 +95,6 @@
                 "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
-
                 "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
               ]
             ]
@@ -116,8 +121,16 @@
         },
         "PrivateIpAddress": "10.0.2.10",
         "SubnetId": {
-          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet2ID" }
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-Subnet2ID"
+          }
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Kafka 2"
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -130,9 +143,7 @@
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
                 "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
                 "mv kafka_2.9.1-0.8.2.1/ kafka\n",
-
                 "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
-
                 "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
                 "echo \"port=9092\" >> kafka/config/server.properties\n",
                 "echo \"host.name=10.0.2.10\" >> kafka/config/server.properties\n",
@@ -150,7 +161,6 @@
                 "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
-
                 "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
               ]
             ]
@@ -177,8 +187,16 @@
         },
         "PrivateIpAddress": "10.0.3.10",
         "SubnetId": {
-          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet3ID" }
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-Subnet3ID"
+          }
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Kafka 3"
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -191,9 +209,7 @@
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
                 "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
                 "mv kafka_2.9.1-0.8.2.1/ kafka\n",
-
                 "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
-
                 "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
                 "echo \"port=9092\" >> kafka/config/server.properties\n",
                 "echo \"host.name=10.0.3.10\" >> kafka/config/server.properties\n",
@@ -211,7 +227,6 @@
                 "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
-
                 "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
               ]
             ]
@@ -230,7 +245,9 @@
           }
         ],
         "VpcId": {
-          "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-VPCID" }
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-VPCID"
+          }
         }
       }
     }

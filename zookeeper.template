@@ -57,6 +57,12 @@
         "SubnetId": {
           "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet1ID" }
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ZooKeeper 1"
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -112,6 +118,12 @@
         "SubnetId": {
           "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet2ID" }
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ZooKeeper 2"
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -167,6 +179,12 @@
         "SubnetId": {
           "Fn::ImportValue" : {"Fn::Sub": "${InitialStackName}-Subnet3ID" }
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ZooKeeper 3"
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
