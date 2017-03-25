@@ -1,6 +1,6 @@
 # Big-data AWS CloudFormation Templates
 
-These are AWS CloudFormation templates for various big-data and supporting applications. As with most things, you will probably want to customize them a bit to suit your needs.
+These are AWS CloudFormation templates for various big-data and supporting applications. As with most things, you will likely want to customize these templates a bit to suit your needs.
 
 ## Templates
 
@@ -20,4 +20,4 @@ The `broker.id` property for each Kafka instance will be set to the EC2 instance
 
 ### `nifi-standalone.template`
 
-This template creates a single EC2 instance running NiFi as a service.
+This template creates a single EC2 instance running NiFi as a system service.
