@@ -36,6 +36,25 @@
     }
   },
   "Resources": {
+    "Kafka1LogsVolume": {
+      "Type": "AWS::EC2::Volume",
+      "Properties": {
+        "AvailabilityZone": "us-east-1a",
+        "Size": "8"
+      }
+    },
+    "Kafka1LogsVolumeMount": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Properties": {
+        "InstanceId": {
+          "Ref": "Kafka1Instance"
+        },
+        "VolumeId": {
+          "Ref": "Kafka1LogsVolume"
+        },
+        "Device": "/dev/sdf"
+      }
+    },
     "Kafka1Instance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
@@ -72,6 +91,11 @@
               [
                 "#!/bin/bash -xe\n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "# Wait for EBS mounts to become available\n",
+                "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
+                "sudo mkfs -t ext4 /dev/xvdf\n",
+                "sudo mkdir /var/kafka-logs\n",
+                "sudo mount /dev/xvdf /var/kafka-logs\n",
                 "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
@@ -86,7 +110,7 @@
                 "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
                 "echo \"socket.receive.buffer.bytes=102400\" >> kafka/config/server.properties\n",
                 "echo \"socket.request.max.bytes=104857600\" >> kafka/config/server.properties\n",
-                "echo \"log.dirs=/tmp/kafka-logs\" >> kafka/config/server.properties\n",
+                "echo \"log.dirs=/var/kafka-logs\" >> kafka/config/server.properties\n",
                 "echo \"num.partitions=1\" >> kafka/config/server.properties\n",
                 "echo \"num.recovery.threads.per.data.dir=1\" >> kafka/config/server.properties\n",
                 "echo \"log.retention.hours=168\" >> kafka/config/server.properties\n",
@@ -100,6 +124,25 @@
             ]
           }
         }
+      }
+    },
+    "Kafka2LogsVolume": {
+      "Type": "AWS::EC2::Volume",
+      "Properties": {
+        "AvailabilityZone": "us-east-1b",
+        "Size": "8"
+      }
+    },
+    "Kafka2LogsVolumeMount": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Properties": {
+        "InstanceId": {
+          "Ref": "Kafka2Instance"
+        },
+        "VolumeId": {
+          "Ref": "Kafka2LogsVolume"
+        },
+        "Device": "/dev/sdf"
       }
     },
     "Kafka2Instance": {
@@ -138,6 +181,11 @@
               [
                 "#!/bin/bash -xe\n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "# Wait for EBS mounts to become available\n",
+                "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
+                "sudo mkfs -t ext4 /dev/xvdf\n",
+                "sudo mkdir /var/kafka-logs\n",
+                "sudo mount /dev/xvdf /var/kafka-logs\n",
                 "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
@@ -166,6 +214,25 @@
             ]
           }
         }
+      }
+    },
+    "Kafka3LogsVolume": {
+      "Type": "AWS::EC2::Volume",
+      "Properties": {
+        "AvailabilityZone": "us-east-1c",
+        "Size": "8"
+      }
+    },
+    "Kafka3LogsVolumeMount": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Properties": {
+        "InstanceId": {
+          "Ref": "Kafka3Instance"
+        },
+        "VolumeId": {
+          "Ref": "Kafka3LogsVolume"
+        },
+        "Device": "/dev/sdf"
       }
     },
     "Kafka3Instance": {
@@ -204,6 +271,11 @@
               [
                 "#!/bin/bash -xe\n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "# Wait for EBS mounts to become available\n",
+                "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
+                "sudo mkfs -t ext4 /dev/xvdf\n",
+                "sudo mkdir /var/kafka-logs\n",
+                "sudo mount /dev/xvdf /var/kafka-logs\n",
                 "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
