@@ -1,0 +1,234 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploys a NiFi cluster.",
+  "Parameters": {
+    "InitialStackName": {
+      "Description": "Name of an active CloudFormation stack that contains the initial resources.",
+      "Type": "String",
+      "MinLength": 1,
+      "MaxLength": 255,
+      "AllowedPattern": "^[a-zA-Z][-a-zA-Z0-9]*$",
+      "Default": "initial"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "NiFiInstanceType": {
+      "Description": "NiFi EC2 instance type",
+      "Type": "String",
+      "Default": "t2.large"
+    },
+    "NiFiAMI": {
+      "Description": "NiFi AMI",
+      "Type": "String",
+      "Default": "ami-f4cc1de2"
+    },
+    "Location": {
+      "Description": "The IP address range that can be used for NiFi and SSH.",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    }
+  },
+  "Resources": {
+    "NiFi1Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "NiFiInstanceType"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "NiFiInstanceSecurityGroup"
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Ref": "NiFiAMI"
+        },
+        "PrivateIpAddress": "10.0.1.20",
+        "SubnetId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-Subnet1ID"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "NiFi 1"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "cd /opt/\n",
+                "wget http://apache.claz.org/nifi/1.1.2/nifi-1.1.2-bin.tar.gz\n",
+                "gunzip -c nifi-1.1.2-bin.tar.gz | tar xvf -\n",
+                "./nifi-1.1.2/bin/nifi.sh install\n",
+
+                "sed -i \"/nifi.web.http.host=/ s/=.*/=10.0.1.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.web.http.port=/ s/=.*/=8080/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.zookeeper.connect.string=/ s/=.*/=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.is.node=/ s/=.*/=true/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.node.address=/ s/=.*/=10.0.1.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.node.protocol.port=/ s/=.*/=12000/\" ./nifi-1.1.2/conf/nifi.properties\n",
+
+                "reboot\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "NiFi2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "NiFiInstanceType"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "NiFiInstanceSecurityGroup"
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Ref": "NiFiAMI"
+        },
+        "PrivateIpAddress": "10.0.2.20",
+        "SubnetId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-Subnet2ID"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "NiFi 2"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "cd /opt/\n",
+                "wget http://apache.claz.org/nifi/1.1.2/nifi-1.1.2-bin.tar.gz\n",
+                "gunzip -c nifi-1.1.2-bin.tar.gz | tar xvf -\n",
+                "./nifi-1.1.2/bin/nifi.sh install\n",
+
+                "sed -i \"/nifi.web.http.host=/ s/=.*/=10.0.2.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.web.http.port=/ s/=.*/=8080/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.zookeeper.connect.string=/ s/=.*/=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.is.node=/ s/=.*/=true/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.node.address=/ s/=.*/=10.0.2.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.node.protocol.port=/ s/=.*/=12000/\" ./nifi-1.1.2/conf/nifi.properties\n",
+
+                "reboot\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "NiFi3Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "NiFiInstanceType"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "NiFiInstanceSecurityGroup"
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Ref": "NiFiAMI"
+        },
+        "PrivateIpAddress": "10.0.3.20",
+        "SubnetId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-Subnet3ID"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "NiFi 3"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "cd /opt/\n",
+                "wget http://apache.claz.org/nifi/1.1.2/nifi-1.1.2-bin.tar.gz\n",
+                "gunzip -c nifi-1.1.2-bin.tar.gz | tar xvf -\n",
+                "./nifi-1.1.2/bin/nifi.sh install\n",
+
+                "sed -i \"/nifi.web.http.host=/ s/=.*/=10.0.3.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.web.http.port=/ s/=.*/=8080/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.zookeeper.connect.string=/ s/=.*/=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.is.node=/ s/=.*/=true/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.node.address=/ s/=.*/=10.0.3.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.cluster.node.protocol.port=/ s/=.*/=12000/\" ./nifi-1.1.2/conf/nifi.properties\n",
+
+                "reboot\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "NiFiInstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Group for NiFi instances",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "ToPort": "22",
+            "FromPort": "22",
+            "CidrIp": {
+              "Ref": "Location"
+            }
+          }
+        ],
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${InitialStackName}-VPCID"
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {}
+}

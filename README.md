@@ -20,4 +20,8 @@ The `broker.id` property for each Kafka instance will be set to the EC2 instance
 
 ### `nifi-standalone.template`
 
-This template creates a single EC2 instance running NiFi as a system service.
+This template creates a single EC2 instance running NiFi as a system service. Once the stack has been successfully created you can access NiFi at http://public-ip:8080/nifi.
+
+### `nifi.template`
+
+This template creates a three node NiFi cluster with one instance per subset. Once the stack has been successfully created NiFi will be available at http://public-ip:8080/nifi.
