@@ -84,6 +84,7 @@
                 "sed -i \"/nifi.cluster.is.node=/ s/=.*/=true/\" ./nifi-1.1.2/conf/nifi.properties\n",
                 "sed -i \"/nifi.cluster.node.address=/ s/=.*/=10.0.1.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
                 "sed -i \"/nifi.cluster.node.protocol.port=/ s/=.*/=12000/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.state.management.embedded.zookeeper.start=/ s/=.*/=false/\" ./nifi-1.1.2/conf/nifi.properties\n",
 
                 "reboot\n"
               ]
@@ -140,6 +141,7 @@
                 "sed -i \"/nifi.cluster.is.node=/ s/=.*/=true/\" ./nifi-1.1.2/conf/nifi.properties\n",
                 "sed -i \"/nifi.cluster.node.address=/ s/=.*/=10.0.2.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
                 "sed -i \"/nifi.cluster.node.protocol.port=/ s/=.*/=12000/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                "sed -i \"/nifi.state.management.embedded.zookeeper.start=/ s/=.*/=false/\" ./nifi-1.1.2/conf/nifi.properties\n",
 
                 "reboot\n"
               ]
@@ -196,7 +198,8 @@
                 "sed -i \"/nifi.cluster.is.node=/ s/=.*/=true/\" ./nifi-1.1.2/conf/nifi.properties\n",
                 "sed -i \"/nifi.cluster.node.address=/ s/=.*/=10.0.3.20/\" ./nifi-1.1.2/conf/nifi.properties\n",
                 "sed -i \"/nifi.cluster.node.protocol.port=/ s/=.*/=12000/\" ./nifi-1.1.2/conf/nifi.properties\n",
-
+                "sed -i \"/nifi.state.management.embedded.zookeeper.start=/ s/=.*/=false/\" ./nifi-1.1.2/conf/nifi.properties\n",
+                
                 "reboot\n"
               ]
             ]
