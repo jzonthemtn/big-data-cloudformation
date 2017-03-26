@@ -14,10 +14,10 @@ This template creates and configures three ZooKeeper instances - one in each sub
 
 ### `kafka.template`
 
-This template creates and configures three Kafka instances - one in each subnet. This template requires both the `initial.template` and the `zookeeper.template` to have been successfully created because this template configures Kafka based on the ZooKeeper settings defined in `zookeeper.template`.
+This template creates and configures an autoscaling group of Kafka instances across three subnets. This template requires both the `initial.template` and the `zookeeper.template` to have been successfully created because this template configures Kafka based on the ZooKeeper settings defined in `zookeeper.template`.
 
 * The `logs.dir` property is set to `/var/kafka-logs` and this directory is located on a second EBS volume.
-* The `broker.id` property for each Kafka instance will be set to the EC2 instance ID.
+* The `broker.id` property for each Kafka instance is calculated based on the instance's IP. (This will be improved.)
 
 ### `nifi-standalone.template`
 

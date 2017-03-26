@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Deploys Kafka.",
+  "Description": "Deploys an autoscaled Kafka cluster.",
   "Parameters": {
     "InitialStackName": {
       "Description": "Name of an active CloudFormation stack that contains the initial resources.",
@@ -25,6 +25,26 @@
       "Type": "String",
       "Default": "ami-f4cc1de2"
     },
+    "MinInstances": {
+      "Description": "Minimum number of instances",
+      "Type": "Number",
+      "Default": "1"
+    },
+    "MaxInstances": {
+      "Description": "Maximum number of instances",
+      "Type": "Number",
+      "Default": "3"
+    },
+    "DesiredInstances": {
+      "Description": "Desired number of instances",
+      "Type": "Number",
+      "Default": "1"
+    },
+    "SizeOfLogVolume": {
+      "Description": "Size (GB) of the Kafka log EBS volume for each instance",
+      "Type": "Number",
+      "Default": "8"
+    },
     "SSHLocation": {
       "Description": "The IP address range that can be used to SSH to the EC2 instances",
       "Type": "String",
@@ -36,34 +56,15 @@
     }
   },
   "Resources": {
-    "Kafka1LogsVolume": {
-      "Type": "AWS::EC2::Volume",
+    "LaunchConfiguration": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AvailabilityZone": "us-east-1a",
-        "Size": "8"
-      }
-    },
-    "Kafka1LogsVolumeMount": {
-      "Type": "AWS::EC2::VolumeAttachment",
-      "Properties": {
-        "InstanceId": {
-          "Ref": "Kafka1Instance"
-        },
-        "VolumeId": {
-          "Ref": "Kafka1LogsVolume"
-        },
-        "Device": "/dev/sdf"
-      }
-    },
-    "Kafka1Instance": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "InstanceType": {
-          "Ref": "KafkaInstanceType"
-        },
-        "SecurityGroupIds": [
+        "BlockDeviceMappings": [
           {
-            "Ref": "KafkaInstanceSecurityGroup"
+            "DeviceName": "/dev/sdf",
+            "Ebs": {
+              "VolumeSize": {"Ref": "SizeOfLogVolume"}
+            }
           }
         ],
         "KeyName": {
@@ -72,18 +73,14 @@
         "ImageId": {
           "Ref": "KafkaAMI"
         },
-        "PrivateIpAddress": "10.0.1.10",
-        "SubnetId": {
-          "Fn::ImportValue": {
-            "Fn::Sub": "${InitialStackName}-Subnet1ID"
-          }
-        },
-        "Tags": [
+        "SecurityGroups": [
           {
-            "Key": "Name",
-            "Value": "Kafka 1"
+            "Ref": "KafkaInstanceSecurityGroup"
           }
         ],
+        "InstanceType": {
+          "Ref": "KafkaInstanceType"
+        },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -96,15 +93,26 @@
                 "sudo mkfs -t ext4 /dev/xvdf\n",
                 "sudo mkdir /var/kafka-logs\n",
                 "sudo mount /dev/xvdf /var/kafka-logs\n",
-                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
+                "sudo rm -rf /var/kafka-logs/*\n",
+                "apt-get update && apt-get -y install bc openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
                 "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
                 "mv kafka_2.9.1-0.8.2.1/ kafka\n",
-                "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
-                "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
+                "IP=`wget -q -O - http://169.254.169.254/latest/meta-data/local-ipv4`\n",
+                "# TODO: Improve this. Used from http://tech.gc.com/scaling-with-kafka/\n",
+                "FOURTHPOWER=`echo '256^3' | bc`\n",
+                "THIRDPOWER=`echo '256^2' | bc`\n",
+                "SECONDPOWER=`echo '256^1' | bc`\n",
+                "FOURTHIP=`echo $IP | cut -d '.' -f 1`\n",
+                "THIRDIP=`echo $IP | cut -d '.' -f 2`\n",
+                "SECONDIP=`echo $IP | cut -d '.' -f 3`\n",
+                "FIRSTIP=`echo $IP | cut -d '.' -f 4`\n",
+                "BROKER_ID=`expr $FOURTHIP \\* $FOURTHPOWER + $THIRDIP \\* $THIRDPOWER + $SECONDIP \\* $SECONDPOWER + $FIRSTIP`\n",
+                "# TODO: Set these properties without overwriting the whole file.\n",
+                "echo \"broker.id=$BROKER_ID\" > kafka/config/server.properties\n",
                 "echo \"port=9092\" >> kafka/config/server.properties\n",
-                "echo \"host.name=10.0.1.10\" >> kafka/config/server.properties\n",
+                "echo \"host.name=$IP\" >> kafka/config/server.properties\n",
                 "echo \"num.network.threads=3\" >> kafka/config/server.properties\n",
                 "echo \"num.io.threads=8\" >> kafka/config/server.properties\n",
                 "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
@@ -126,184 +134,96 @@
         }
       }
     },
-    "Kafka2LogsVolume": {
-      "Type": "AWS::EC2::Volume",
+    "KafkaAutoScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
-        "AvailabilityZone": "us-east-1b",
-        "Size": "8"
-      }
-    },
-    "Kafka2LogsVolumeMount": {
-      "Type": "AWS::EC2::VolumeAttachment",
-      "Properties": {
-        "InstanceId": {
-          "Ref": "Kafka2Instance"
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfiguration"
         },
-        "VolumeId": {
-          "Ref": "Kafka2LogsVolume"
-        },
-        "Device": "/dev/sdf"
-      }
-    },
-    "Kafka2Instance": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "InstanceType": {
-          "Ref": "KafkaInstanceType"
-        },
-        "SecurityGroupIds": [
+        "MinSize": {"Ref": "MinInstances"},
+        "MaxSize": {"Ref": "MaxInstances"},
+        "DesiredCapacity": {"Ref": "DesiredInstances"},
+        "LoadBalancerNames": [
           {
-            "Ref": "KafkaInstanceSecurityGroup"
+            "Ref": "KafkaLoadBalancer"
           }
         ],
-        "KeyName": {
-          "Ref": "KeyName"
-        },
-        "ImageId": {
-          "Ref": "KafkaAMI"
-        },
-        "PrivateIpAddress": "10.0.2.10",
-        "SubnetId": {
-          "Fn::ImportValue": {
-            "Fn::Sub": "${InitialStackName}-Subnet2ID"
-          }
-        },
         "Tags": [
           {
             "Key": "Name",
-            "Value": "Kafka 2"
+            "Value": "Kafka",
+            "PropagateAtLaunch": "true"
           }
         ],
-        "UserData": {
-          "Fn::Base64": {
-            "Fn::Join": [
-              "",
-              [
-                "#!/bin/bash -xe\n",
-                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
-                "# Wait for EBS mounts to become available\n",
-                "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
-                "sudo mkfs -t ext4 /dev/xvdf\n",
-                "sudo mkdir /var/kafka-logs\n",
-                "sudo mount /dev/xvdf /var/kafka-logs\n",
-                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
-                "cd /opt/\n",
-                "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
-                "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
-                "mv kafka_2.9.1-0.8.2.1/ kafka\n",
-                "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
-                "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
-                "echo \"port=9092\" >> kafka/config/server.properties\n",
-                "echo \"host.name=10.0.2.10\" >> kafka/config/server.properties\n",
-                "echo \"num.network.threads=3\" >> kafka/config/server.properties\n",
-                "echo \"num.io.threads=8\" >> kafka/config/server.properties\n",
-                "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
-                "echo \"socket.receive.buffer.bytes=102400\" >> kafka/config/server.properties\n",
-                "echo \"socket.request.max.bytes=104857600\" >> kafka/config/server.properties\n",
-                "echo \"log.dirs=/tmp/kafka-logs\" >> kafka/config/server.properties\n",
-                "echo \"num.partitions=1\" >> kafka/config/server.properties\n",
-                "echo \"num.recovery.threads.per.data.dir=1\" >> kafka/config/server.properties\n",
-                "echo \"log.retention.hours=168\" >> kafka/config/server.properties\n",
-                "echo \"log.segment.bytes=1073741824\" >> kafka/config/server.properties\n",
-                "echo \"log.retention.check.interval.ms=300000\" >> kafka/config/server.properties\n",
-                "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
-                "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
-                "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
-                "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
-              ]
-            ]
-          }
-        }
-      }
-    },
-    "Kafka3LogsVolume": {
-      "Type": "AWS::EC2::Volume",
-      "Properties": {
-        "AvailabilityZone": "us-east-1c",
-        "Size": "8"
-      }
-    },
-    "Kafka3LogsVolumeMount": {
-      "Type": "AWS::EC2::VolumeAttachment",
-      "Properties": {
-        "InstanceId": {
-          "Ref": "Kafka3Instance"
-        },
-        "VolumeId": {
-          "Ref": "Kafka3LogsVolume"
-        },
-        "Device": "/dev/sdf"
-      }
-    },
-    "Kafka3Instance": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "InstanceType": {
-          "Ref": "KafkaInstanceType"
-        },
-        "SecurityGroupIds": [
+        "VPCZoneIdentifier": [
           {
-            "Ref": "KafkaInstanceSecurityGroup"
+            "Fn::ImportValue": {
+              "Fn::Sub": "${InitialStackName}-Subnet1ID"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${InitialStackName}-Subnet2ID"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${InitialStackName}-Subnet3ID"
+            }
+          }
+        ]
+      }
+    },
+    "KafkaLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "LoadBalancerName": "KafkaLoadBalancer",
+        "SecurityGroups": [
+          {
+            "Ref": "KafkaLoadBalancerSecurityGroup"
           }
         ],
-        "KeyName": {
-          "Ref": "KeyName"
-        },
-        "ImageId": {
-          "Ref": "KafkaAMI"
-        },
-        "PrivateIpAddress": "10.0.3.10",
-        "SubnetId": {
+        "Subnets": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${InitialStackName}-Subnet1ID"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${InitialStackName}-Subnet2ID"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${InitialStackName}-Subnet3ID"
+            }
+          }
+        ],
+        "Listeners": [
+          {
+            "LoadBalancerPort": "9092",
+            "InstancePort": "9092",
+            "Protocol": "HTTP"
+          }
+        ]
+      }
+    },
+    "KafkaLoadBalancerSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Kafka Load Balancer Security Group",
+        "VpcId": {
           "Fn::ImportValue": {
-            "Fn::Sub": "${InitialStackName}-Subnet3ID"
+            "Fn::Sub": "${InitialStackName}-VPCID"
           }
         },
-        "Tags": [
+        "SecurityGroupIngress": [
           {
-            "Key": "Name",
-            "Value": "Kafka 3"
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
           }
-        ],
-        "UserData": {
-          "Fn::Base64": {
-            "Fn::Join": [
-              "",
-              [
-                "#!/bin/bash -xe\n",
-                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
-                "# Wait for EBS mounts to become available\n",
-                "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
-                "sudo mkfs -t ext4 /dev/xvdf\n",
-                "sudo mkdir /var/kafka-logs\n",
-                "sudo mount /dev/xvdf /var/kafka-logs\n",
-                "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
-                "cd /opt/\n",
-                "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
-                "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
-                "mv kafka_2.9.1-0.8.2.1/ kafka\n",
-                "INSTANCE_ID=`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`\n",
-                "echo \"broker.id=$INSTANCE_ID\" > kafka/config/server.properties\n",
-                "echo \"port=9092\" >> kafka/config/server.properties\n",
-                "echo \"host.name=10.0.3.10\" >> kafka/config/server.properties\n",
-                "echo \"num.network.threads=3\" >> kafka/config/server.properties\n",
-                "echo \"num.io.threads=8\" >> kafka/config/server.properties\n",
-                "echo \"socket.send.buffer.bytes=102400\" >> kafka/config/server.properties\n",
-                "echo \"socket.receive.buffer.bytes=102400\" >> kafka/config/server.properties\n",
-                "echo \"socket.request.max.bytes=104857600\" >> kafka/config/server.properties\n",
-                "echo \"log.dirs=/tmp/kafka-logs\" >> kafka/config/server.properties\n",
-                "echo \"num.partitions=1\" >> kafka/config/server.properties\n",
-                "echo \"num.recovery.threads.per.data.dir=1\" >> kafka/config/server.properties\n",
-                "echo \"log.retention.hours=168\" >> kafka/config/server.properties\n",
-                "echo \"log.segment.bytes=1073741824\" >> kafka/config/server.properties\n",
-                "echo \"log.retention.check.interval.ms=300000\" >> kafka/config/server.properties\n",
-                "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
-                "echo \"zookeeper.connect=10.0.1.4:2181,10.0.2.4:2181,10.0.3.4:2181\" >> kafka/config/server.properties\n",
-                "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
-                "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
-              ]
-            ]
-          }
-        }
+        ]
       }
     },
     "KafkaInstanceSecurityGroup": {
