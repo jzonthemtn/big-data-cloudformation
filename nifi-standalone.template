@@ -25,6 +25,11 @@
       "Type": "String",
       "Default": "ami-f4cc1de2"
     },
+    "NiFiVersion": {
+      "Description": "The version of NiFi",
+      "Type": "String",
+      "Default": "1.1.2"
+    },
     "Location": {
       "Description": "The IP address range that can be used for NiFi and SSH.",
       "Type": "String",
@@ -73,9 +78,9 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
                 "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
-                "wget http://apache.claz.org/nifi/1.1.2/nifi-1.1.2-bin.tar.gz\n",
-                "gunzip -c nifi-1.1.2-bin.tar.gz | tar xvf -\n",
-                "./nifi-1.1.2/bin/nifi.sh install\n",
+                "wget http://apache.claz.org/nifi/", {"Ref": "NiFiVersion"}, "/nifi-", {"Ref": "NiFiVersion"}, "-bin.tar.gz\n",
+                "gunzip -c nifi-", {"Ref": "NiFiVersion"}, "-bin.tar.gz | tar xvf -\n",
+                "./nifi-", {"Ref": "NiFiVersion"}, "/bin/nifi.sh install\n",
                 "reboot\n"
               ]
             ]
@@ -113,5 +118,10 @@
       }
     }
   },
-  "Outputs": {}
+  "Outputs": {
+    "NiFiVersion": {
+      "Description": "NiFi Version",
+      "Value": {"Ref": "NiFiVersion"}
+    }
+  }
 }
