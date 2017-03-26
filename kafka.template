@@ -100,10 +100,12 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
                 "# Wait for EBS mounts to become available\n",
                 "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
-                "sudo mkfs -t ext4 /dev/xvdf\n",
-                "sudo mkdir /var/kafka-logs\n",
-                "sudo mount /dev/xvdf /var/kafka-logs\n",
-                "sudo rm -rf /var/kafka-logs/*\n",
+                "mkfs -t ext4 /dev/xvdf\n",
+                "mkdir /var/kafka-logs\n",
+                "mount /dev/xvdf /var/kafka-logs\n",
+                "rm -rf /var/kafka-logs/*\n",
+                "useradd -r -s /bin/false kafka\n",
+                "chown kafka:kafka /var/kafka-logs -R\n",
                 "apt-get update && apt-get -y install bc openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
                 "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
@@ -144,7 +146,8 @@
                 "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connect=$ZOOKEEPER_IPS\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
-                "kafka/bin/kafka-server-start.sh kafka/config/server.properties &"
+                "chown kafka:kafka /opt/kafka -R\n",
+                "runuser -l kafka -c 'kafka/bin/kafka-server-start.sh kafka/config/server.properties &'"
               ]
             ]
           }
