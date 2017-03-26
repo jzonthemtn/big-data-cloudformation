@@ -53,6 +53,11 @@
       "Type": "Number",
       "Default": "8"
     },
+    "KafkaVersion": {
+      "Description": "The version of Kafka",
+      "Type": "String",
+      "Default": "0.10.2.0"
+    },
     "SSHLocation": {
       "Description": "The IP address range that can be used to SSH to the EC2 instances",
       "Type": "String",
@@ -108,9 +113,9 @@
                 "chown kafka:kafka /var/kafka-logs -R\n",
                 "apt-get update && apt-get -y install bc openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
-                "wget http://apache.spinellicreations.com/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz\n",
-                "gunzip -c kafka_2.9.1-0.8.2.1.tgz | tar xvf -\n",
-                "mv kafka_2.9.1-0.8.2.1/ kafka\n",
+                "wget http://apache.spinellicreations.com/kafka/", {"Ref": "KafkaVersion"}, "/kafka_2.12-", {"Ref": "KafkaVersion"}, ".tgz\n",
+                "gunzip -c kafka_2.12-", {"Ref": "KafkaVersion"}, ".tgz | tar xvf -\n",
+                "mv kafka_2.12-", {"Ref": "KafkaVersion"}, "/ kafka\n",
                 "ZOOKEEPER_IPS=",
                 {
                   "Fn::ImportValue": {
@@ -270,5 +275,10 @@
       }
     }
   },
-  "Outputs": {}
+  "Outputs": {
+    "KafkaVersion": {
+      "Description": "Kafka Version",
+      "Value": {"Ref": "KafkaVersion"}
+    }
+  }
 }
