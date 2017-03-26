@@ -90,7 +90,10 @@
 
                 "mkdir -p /var/zookeeper/data\n",
                 "echo \"1\" > /var/zookeeper/data/myid\n",
-                "/opt/zookeeper/bin/zkServer.sh start"
+                "useradd -r -s /bin/false zookeeper\n",
+                "chown zookeeper:zookeeper /var/zookeeper -R\n",
+                "chown zookeeper:zookeeper /opt/zookeeper -R\n",
+                "runuser -l zookeeper -c '/opt/zookeeper/bin/zkServer.sh start'"
               ]
             ]
           }
