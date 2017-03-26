@@ -103,14 +103,17 @@
               [
                 "#!/bin/bash -xe\n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
+
                 "# Wait for EBS mounts to become available\n",
                 "while [ ! -e /dev/xvdf ]; do echo waiting for /dev/xvdf to attach; sleep 10; done\n",
                 "mkfs -t ext4 /dev/xvdf\n",
                 "mkdir /var/kafka-logs\n",
                 "mount /dev/xvdf /var/kafka-logs\n",
                 "rm -rf /var/kafka-logs/*\n",
+
                 "useradd -r -s /bin/false kafka\n",
                 "chown kafka:kafka /var/kafka-logs -R\n",
+
                 "apt-get update && apt-get -y install bc openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
                 "wget http://apache.spinellicreations.com/kafka/", {"Ref": "KafkaVersion"}, "/kafka_2.12-", {"Ref": "KafkaVersion"}, ".tgz\n",
@@ -124,6 +127,7 @@
                 },
                 "\n",
                 "IP=`wget -q -O - http://169.254.169.254/latest/meta-data/local-ipv4`\n",
+
                 "# TODO: Improve this. Used from http://tech.gc.com/scaling-with-kafka/\n",
                 "FOURTHPOWER=`echo '256^3' | bc`\n",
                 "THIRDPOWER=`echo '256^2' | bc`\n",
@@ -133,6 +137,7 @@
                 "SECONDIP=`echo $IP | cut -d '.' -f 3`\n",
                 "FIRSTIP=`echo $IP | cut -d '.' -f 4`\n",
                 "BROKER_ID=`expr $FOURTHIP \\* $FOURTHPOWER + $THIRDIP \\* $THIRDPOWER + $SECONDIP \\* $SECONDPOWER + $FIRSTIP`\n",
+
                 "# TODO: Set these properties without overwriting the whole file.\n",
                 "echo \"broker.id=$BROKER_ID\" > kafka/config/server.properties\n",
                 "echo \"port=9092\" >> kafka/config/server.properties\n",
@@ -151,6 +156,7 @@
                 "echo \"log.cleaner.enable=false\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connect=$ZOOKEEPER_IPS\" >> kafka/config/server.properties\n",
                 "echo \"zookeeper.connection.timeout.ms=6000\" >> kafka/config/server.properties\n",
+
                 "chown kafka:kafka /opt/kafka -R\n",
                 "runuser -l kafka -c 'kafka/bin/kafka-server-start.sh kafka/config/server.properties &'"
               ]
