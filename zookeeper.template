@@ -25,6 +25,11 @@
       "Type": "String",
       "Default": "ami-f4cc1de2"
     },
+    "ZooKeeperVersion": {
+      "Description": "The version of ZooKeeper",
+      "Type": "String",
+      "Default": "3.4.9"
+    },
     "SSHLocation": {
       "Description": "The IP address range that can be used to SSH to the EC2 instances",
       "Type": "String",
@@ -72,9 +77,9 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n",
                 "apt-get update && apt-get -y install openjdk-8-jdk ntp\n",
                 "cd /opt/\n",
-                "wget http://apache.claz.org/zookeeper/zookeeper-3.4.6/zookeeper-3.4.9.tar.gz\n",
-                "gunzip -c zookeeper-3.4.9.tar.gz | tar xvf -\n",
-                "mv zookeeper-3.4.9/ zookeeper\n",
+                "wget http://apache.claz.org/zookeeper/zookeeper-", {"Ref": "ZooKeeperVersion"}, "/zookeeper-", {"Ref": "ZooKeeperVersion"}, ".tar.gz\n",
+                "gunzip -c zookeeper-", {"Ref": "ZooKeeperVersion"}, ".tar.gz | tar xvf -\n",
+                "mv zookeeper-", {"Ref": "ZooKeeperVersion"}, "/ zookeeper\n",
 
                 "echo \"tickTime=2000\" > zookeeper/conf/zoo.cfg\n",
                 "echo \"initLimit=10\" >> zookeeper/conf/zoo.cfg\n",
@@ -247,6 +252,10 @@
           "Fn::Sub": "${AWS::StackName}-ZooKeeperIPAddresses"
         }
       }
+    },
+    "ZooKeeperVersion": {
+      "Description": "ZooKeeper Version",
+      "Value": {"Ref": "ZooKeeperVersion"}
     }
   }
 }
