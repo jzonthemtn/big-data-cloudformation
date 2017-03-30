@@ -8,10 +8,6 @@ These are AWS CloudFormation templates for various big-data and supporting appli
 
 This template creates a VPC along with the supporting subnets and routing tables. This template creates three public subnets - each one in a different availability zone of the `US-EAST-1` region. **The other templates build upon the resources defined in `initial.template` to configure their respective applications.** The goal of this approach is to let you provision only the applications that you need.
 
-### `zookeeper.template`
-
-This template creates and configures three ZooKeeper instances - one in each subnet. Once the configuration is complete ZooKeeper will be started on each instance.
-
 ### `kafka.template`
 
 This template creates and configures an autoscaling group of Kafka instances across three subnets. This template requires both the `initial.template` and the `zookeeper.template` to have been successfully created because this template configures Kafka based on the ZooKeeper settings defined in `zookeeper.template`.
@@ -30,3 +26,7 @@ This template creates a three node NiFi cluster with one instance per subset. On
 ### `zeppelin.template`
 
 This template creates a single EC2 instance running Zeppelin. Once the stack has been successfully created you can access Zeppelin at http://public-ip:8080. Applications like Spark, Pig, and others can be install manually.
+
+### `zookeeper.template`
+
+This template creates and configures three ZooKeeper instances - one in each subnet. Once the configuration is complete ZooKeeper will be started on each instance.
