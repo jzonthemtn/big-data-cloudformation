@@ -1,6 +1,6 @@
 # Big-data AWS CloudFormation Templates
 
-These are AWS CloudFormation templates for various big-data and supporting applications. As with most things, you will likely want to customize these templates a bit to suit your needs.
+These are AWS CloudFormation templates for various big-data and supporting applications. As with most things, you will likely want to customize these templates a bit to suit your needs. Some applications might be supported on EMR ([see the list](http://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-release-components.html#w1ab1c17c11)).
 
 ## Templates
 
@@ -26,3 +26,7 @@ This template creates a single EC2 instance running NiFi as a system service. On
 ### `nifi.template`
 
 This template creates a three node NiFi cluster with one instance per subset. Once the stack has been successfully created NiFi will be available at http://public-ip:8080/nifi.
+
+### `zeppelin.template`
+
+This template creates a single EC2 instance running Zeppelin. Once the stack has been successfully created you can access Zeppelin at http://public-ip:8080. Applications like Spark, Pig, and others can be install manually.
